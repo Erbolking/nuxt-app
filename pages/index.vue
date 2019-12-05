@@ -5,88 +5,162 @@
     align-center
   >
     <v-flex
+      class="page-wrapper"
       xs12
       sm8
       md6
     >
-      <div class="text-center">
-        <logo />
-        <vuetify-logo />
+      <draggable
+        v-model="list"
+        v-bind="dragOptions"
+        @start="drag = true"
+        @end="drag = false"
+        class="list-group"
+        tag="ul"
+      >
+        <transition-group name="list" type="transition">
+          <li
+            v-for="element in list"
+            :key="element.order"
+            class="list-group-item"
+          >
+            <v-img
+              v-if="element.type === 'image'"
+              src="https://picsum.photos/510/300?random"
+              aspect-ratio="1.7"
+              lazy-src="https://picsum.photos/id/11/10/6"
+            />
+            <v-text-field
+              v-if="element.type === 'text'"
+              v-model="element.value"
+              color="pink"
+              outlined
+              placeholder="Введите текст"
+            />
+          </li>
+        </transition-group>
+      </draggable>
+
+      <div v-if="list.length === 0" class="empty-element">
+        Нажмите на "+" чтобы добавить элементы
       </div>
-      <v-card>
-        <v-card-title class="headline">
-          Welcome to the Vuetify + Nuxt.js template
-        </v-card-title>
-        <v-card-text>
-          <p>Vuetify is a progressive Material Design component framework for Vue.js. It was designed to empower developers to create amazing applications.</p>
-          <p>
-            For more information on Vuetify, check out the <a
-              href="https://vuetifyjs.com"
-              target="_blank"
-            >
-              documentation
-            </a>.
-          </p>
-          <p>
-            If you have questions, please join the official <a
-              href="https://chat.vuetifyjs.com/"
-              target="_blank"
-              title="chat"
-            >
-              discord
-            </a>.
-          </p>
-          <p>
-            Find a bug? Report it on the github <a
-              href="https://github.com/vuetifyjs/vuetify/issues"
-              target="_blank"
-              title="contribute"
-            >
-              issue board
-            </a>.
-          </p>
-          <p>Thank you for developing with Vuetify and I look forward to bringing more exciting features in the future.</p>
-          <div class="text-xs-right">
-            <em><small>&mdash; John Leider</small></em>
-          </div>
-          <hr class="my-3">
-          <a
-            href="https://nuxtjs.org/"
-            target="_blank"
-          >
-            Nuxt Documentation
-          </a>
-          <br>
-          <a
-            href="https://github.com/nuxt/nuxt.js"
-            target="_blank"
-          >
-            Nuxt GitHub
-          </a>
-        </v-card-text>
-        <v-card-actions>
-          <v-spacer />
+
+      <v-bottom-sheet v-model="sheet">
+        <template v-slot:activator="{ on }">
           <v-btn
-            color="primary"
-            nuxt
-            to="/inspire"
+            v-on="on"
+            class="add-btn"
+            dark
+            fixed
+            bottom
+            right
+            fab
+            color="pink"
           >
-            Continue
+            <v-icon dark>
+              mdi-plus
+            </v-icon>
           </v-btn>
-        </v-card-actions>
-      </v-card>
+        </template>
+        <v-list>
+          <v-subheader>Добавить новый блок</v-subheader>
+          <v-list-item
+            v-for="tile in tiles"
+            :key="tile.title"
+            @click.stop="addItem(tile.type)"
+          >
+            <v-list-item-icon>
+              <v-icon>{{ tile.icon }}</v-icon>
+            </v-list-item-icon>
+            <v-list-item-title>{{ tile.title }}</v-list-item-title>
+          </v-list-item>
+        </v-list>
+      </v-bottom-sheet>
     </v-flex>
   </v-layout>
 </template>
 
 <script>
-import Logo from '~/components/Logo.vue'
-import VuetifyLogo from '~/components/VuetifyLogo.vue'
+import draggable from 'vuedraggable'
 
 export default {
   components: {
-    Logo,
-    VuetifyLogo
+    draggable
+  },
+  data: () => ({
+    drag: false,
+    sheet: false,
+    tiles: [
+      { icon: 'mdi-image', title: 'Изображение', type: 'image' },
+      { icon: 'mdi-text', title: 'Текст', type: 'text' }
+    ],
+    list: []
+  }),
+  computed: {
+    dragOptions () {
+      return {
+        animation: 200,
+        group: 'description',
+        disabled: false,
+        ghostClass: 'ghost'
+      }
+    }
+  },
+  mounted () {
+    // just to show API usage :-)
+    this.$axios.$get('http://icanhazip.com')
+      .then((response) => {
+        // eslint-disable-next-line no-console
+        console.log(response)
+      })
+  },
+  methods: {
+    sort () {
+      this.list = this.list.sort((a, b) => a.order - b.order)
+    },
+    addItem (type) {
+      this.list.push({
+        value: '',
+        order: this.list.length + 1,
+        type
+      })
+      this.sheet = false
+    }
   }
 }
 </script>
+<style lang="scss">
+  .add-btn.v-btn--bottom {
+    bottom: 45px;
+  }
+  ul.list-group {
+    list-style-type: none;
+    padding-left: 0;
+    .list-group-item {
+      margin: 10px;
+    }
+  }
+  .list-enter-active, .list-leave-active {
+    transition: all 1s;
+  }
+  .list-enter, .list-leave-to {
+    opacity: 0;
+    transform: translateY(30px);
+  }
+  .page-wrapper {
+    width: 100%;
+  }
+  .empty-element {
+    position: absolute;
+    top: 44%;
+    text-align: center;
+    color: #ccc;
+    font-size: 22px;
+    font-weight: 300;
+  }
+  .v-input {
+    .v-text-field__details {
+      display: none;
+    }
+  }
+</style>
